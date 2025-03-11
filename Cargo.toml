@@ -1,0 +1,12 @@
+[package]
+name = "git_addin"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+addin1c = "0.5.0"
+git2 = "0.20.0"
+itertools = "0.14.0"
+
+[lib]
+crate-type = ["cdylib"]
