@@ -77,7 +77,7 @@ impl GitLib {
 
     pub fn checkout_str(&self, branch: &str) -> String {
         match self.checkout(branch) {
-            Ok(_) => "ok".to_string(),
+            Ok(()) => "Ok".to_string(),
             Err(error) => error.to_string(),
         }
     }
@@ -90,9 +90,8 @@ impl GitLib {
             _ => false,
         });
 
-        let (my_branch, _) = match my_branch {
-            Some(branch) => branch,
-            None => return Err(git2::Error::from_str("no branch with this name")),
+        let Some((my_branch, _)) = my_branch else {
+            return Err(git2::Error::from_str("no branch with this name"));
         };
 
         let my_commit = my_branch.get().resolve()?.peel(ObjectType::Commit)?;
