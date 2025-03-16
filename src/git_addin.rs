@@ -30,8 +30,14 @@ impl GitAddin {
     }
 
     fn commit(&mut self, message: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let message = self.gitlib.commit_str(&message.get_string()?);
-        ret_value.set_str1c(message)?;
+        let result = self.gitlib.commit_str(&message.get_string()?);
+        ret_value.set_str1c(result)?;
+        Ok(())
+    }
+
+    fn checkout(&mut self, branch: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        let result = self.gitlib.checkout_str(&branch.get_string()?);
+        ret_value.set_str1c(result)?;
         Ok(())
     }
 
@@ -98,6 +104,10 @@ impl SimpleAddin for GitAddin {
             MethodInfo {
                 name: name!("Commit"),
                 method: Methods::Method1(Self::commit),
+            },
+            MethodInfo {
+                name: name!("Checkout"),
+                method: Methods::Method1(Self::checkout),
             },
         ]
     }

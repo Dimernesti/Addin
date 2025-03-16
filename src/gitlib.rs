@@ -11,11 +11,11 @@ use git2::{
     Oid,
     RemoteCallbacks,
     Repository,
+    ResetType,
     Signature,
-    build::RepoBuilder,
+    build::{CheckoutBuilder, RepoBuilder},
 };
 use itertools::Itertools;
-
 
 #[derive(Default)]
 pub struct GitLib {
@@ -73,6 +73,33 @@ impl GitLib {
                 format!("{branch_type} {branch_name}",)
             })
             .join("\n")
+    }
+
+    pub fn checkout_str(&self, branch: &str) -> String {
+        match self.checkout(branch) {
+            Ok(_) => "ok".to_string(),
+            Err(error) => error.to_string(),
+        }
+    }
+
+    fn checkout(&self, branch_name: &str) -> Result<(), git2::Error> {
+        let repo = self.open_repo()?;
+        let mut branches = repo.branches(None)?.flatten();
+        let my_branch = branches.find(|(branch, _)| match branch.name() {
+            Ok(Some(name)) => name == branch_name,
+            _ => false,
+        });
+
+        let (my_branch, _) = match my_branch {
+            Some(branch) => branch,
+            None => return Err(git2::Error::from_str("no branch with this name")),
+        };
+
+        let my_commit = my_branch.get().resolve()?.peel(ObjectType::Commit)?;
+
+        let mut checkout = CheckoutBuilder::new();
+
+        repo.reset(&my_commit, ResetType::Hard, Some(checkout.force()))
     }
 
     fn add_all(&self) -> Result<(), git2::Error> {
