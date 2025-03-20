@@ -1,18 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use git2::{
-    Branch,
-    BranchType,
-    Commit,
-    Cred,
-    FetchOptions,
-    IndexAddOption,
-    ObjectType,
-    Oid,
-    RemoteCallbacks,
-    Repository,
-    ResetType,
-    Signature,
+    Branch, BranchType, Commit, Cred, FetchOptions, IndexAddOption, ObjectType, Oid, PushOptions, RemoteCallbacks,
+    Repository, ResetType, Signature,
     build::{CheckoutBuilder, RepoBuilder},
 };
 use itertools::Itertools;
@@ -141,6 +131,26 @@ impl GitLib {
             let mut opts = self.fetch_options();
             remote.fetch(&refspecs, Some(&mut opts), None)?;
         }
+        Ok(())
+    }
+
+    pub fn push_str(&self) -> String {
+        match self.push() {
+            Ok(()) => "Ok".to_string(),
+            Err(e) => e.to_string(),
+        }
+    }
+
+    fn push(&self) -> Result<(), git2::Error> {
+        let repo = self.open_repo()?;
+        let mut origin = repo.find_remote("origin")?;
+        let repo_head = repo.head()?;
+        let branch_name = repo_head.name().ok_or_else(|| git2::Error::from_str("no branch name"))?;
+        let callbacks = self.register_credentials(RemoteCallbacks::new());
+        let mut options = PushOptions::new();
+        options.remote_callbacks(callbacks);
+        origin.push(&[branch_name], Some(&mut options))?;
+
         Ok(())
     }
 
