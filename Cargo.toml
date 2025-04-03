@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 addin1c = "0.5.0"
-git2 = "0.20.0"
+git2 = "0.20.1"
 itertools = "0.14.0"
 
 [lib]

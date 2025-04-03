@@ -83,28 +83,17 @@ impl GitLib {
 
     fn checkout(&self, branch_name: &str) -> Result<(), git2::Error> {
         let repo = self.open_repo()?;
-        let old_branch_name = repo.head()?.name().unwrap_or("INVALID UTF-8").to_string();
 
-        let mut branches = repo.branches(None)?.flatten();
-        let branch = branches.find(|(branch, _)| match branch.name() {
-            Ok(Some(name)) => name == branch_name,
-            _ => false,
-        });
+        let (branch, _) = repo
+            .branches(None)?
+            .flatten()
+            .find(|(branch, _)| branch.name() == Ok(Some(branch_name)))
+            .ok_or(git2::Error::from_str("no branch with this name"))?;
 
-        let Some((branch, _)) = branch else {
-            return Err(git2::Error::from_str("no branch with this name"));
-        };
-
-        repo.set_head(branch_name)?;
-        let my_commit = branch.get().resolve()?.peel(ObjectType::Commit)?;
+        let commit = branch.get().resolve()?.peel(ObjectType::Commit)?;
         let mut checkout = CheckoutBuilder::new();
-        match repo.reset(&my_commit, ResetType::Hard, Some(checkout.force())) {
-            Ok(()) => Ok(()),
-            Err(err) => {
-                repo.set_head(&old_branch_name)?;
-                Err(err)
-            },
-        }
+
+        repo.reset(&commit, ResetType::Hard, Some(checkout.force())).and_then(|()| repo.set_head(branch_name))
     }
 
     fn add_all(&self) -> Result<(), git2::Error> {
