@@ -11,8 +11,8 @@ impl GitAddin {
         Self { gitlib: GitLib::default() }
     }
 
-    fn clone_repo(&mut self, url: &mut Variant, catalog: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let message = self.gitlib.clone_repo_str(&url.get_string()?, &catalog.get_string()?);
+    fn clone_repo(&mut self, url: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        let message = self.gitlib.clone_repo_str(&url.get_string()?);
         ret_value.set_str1c(message)?;
         Ok(())
     }
@@ -97,7 +97,7 @@ impl SimpleAddin for GitAddin {
         &[
             MethodInfo {
                 name: name!("CloneRepo"),
-                method: Methods::Method2(Self::clone_repo),
+                method: Methods::Method1(Self::clone_repo),
             },
             MethodInfo {
                 name: name!("GetBranches"),

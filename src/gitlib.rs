@@ -1,8 +1,19 @@
 use std::path::{Path, PathBuf};
 
 use git2::{
-    Branch, BranchType, Commit, Cred, FetchOptions, IndexAddOption, ObjectType, Oid, PushOptions, RemoteCallbacks,
-    Repository, ResetType, Signature,
+    Branch,
+    BranchType,
+    Commit,
+    Cred,
+    FetchOptions,
+    IndexAddOption,
+    ObjectType,
+    Oid,
+    PushOptions,
+    RemoteCallbacks,
+    Repository,
+    ResetType,
+    Signature,
     build::{CheckoutBuilder, RepoBuilder},
 };
 use itertools::Itertools;
@@ -16,14 +27,12 @@ pub struct GitLib {
 }
 
 impl GitLib {
-    fn clone_repo(&mut self, url: &str, catalog: &str) -> Result<(), git2::Error> {
-        self.set_catalog(catalog);
-
+    fn clone_repo(&mut self, url: &str) -> Result<(), git2::Error> {
         RepoBuilder::new().fetch_options(self.fetch_options()).clone(url, &self.catalog).map(|_repo| ())
     }
 
-    pub fn clone_repo_str(&mut self, url: &str, catalog: &str) -> String {
-        match self.clone_repo(url, catalog) {
+    pub fn clone_repo_str(&mut self, url: &str) -> String {
+        match self.clone_repo(url) {
             Ok(()) => "Ok".to_string(),
             Err(e) => e.to_string(),
         }
@@ -60,7 +69,7 @@ impl GitLib {
                     Err(e) => &e.to_string(),
                 };
 
-                format!("{branch_type} {branch_name}",)
+                format!("{branch_type} {branch_name}")
             })
             .join("\n")
     }
