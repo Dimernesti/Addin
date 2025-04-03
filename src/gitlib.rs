@@ -83,7 +83,7 @@ impl GitLib {
 
     fn checkout(&self, branch_name: &str) -> Result<(), git2::Error> {
         let repo = self.open_repo()?;
-        let old_branch_name = repo.head()?.name().unwrap_or_else(|| "INVALID UTF-8").to_string();
+        let old_branch_name = repo.head()?.name().unwrap_or("INVALID UTF-8").to_string();
 
         let mut branches = repo.branches(None)?.flatten();
         let branch = branches.find(|(branch, _)| match branch.name() {
