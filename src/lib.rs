@@ -8,8 +8,9 @@
     clippy::return_self_not_must_use
 )]
 
-mod git_addin;
-mod gitlib;
+mod addin;
+mod git_status;
+mod git;
 
 use std::{
     ffi::{c_int, c_long, c_void},
@@ -17,7 +18,7 @@ use std::{
 };
 
 use addin1c::{AttachType, create_component, destroy_component, name};
-use git_addin::GitAddin;
+use addin::GitAddin;
 
 pub static PLATFORM_CAPABILITIES: AtomicI32 = AtomicI32::new(-1);
 

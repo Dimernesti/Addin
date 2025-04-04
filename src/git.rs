@@ -1,9 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use git2::{
-    Branch,
-    BranchType,
-    Commit,
     Cred,
     FetchOptions,
     IndexAddOption,
@@ -11,22 +8,24 @@ use git2::{
     Oid,
     PushOptions,
     RemoteCallbacks,
-    Repository,
     ResetType,
     Signature,
+    StatusOptions,
     build::{CheckoutBuilder, RepoBuilder},
 };
 use itertools::Itertools;
 
+use crate::git_status::{FileStatus, StatusSummary};
+
 #[derive(Default)]
-pub struct GitLib {
+pub struct Git {
     pub login: String,
     pub password: String,
     pub email: String,
     pub catalog: PathBuf,
 }
 
-impl GitLib {
+impl Git {
     fn clone_repo(&mut self, url: &str) -> Result<(), git2::Error> {
         RepoBuilder::new().fetch_options(self.fetch_options()).clone(url, &self.catalog).map(|_repo| ())
     }
@@ -38,7 +37,10 @@ impl GitLib {
         }
     }
 
-    fn get_branches<'a>(&self, repo: &'a Repository) -> Result<Vec<(Branch<'a>, BranchType)>, git2::Error> {
+    fn get_branches<'a>(
+        &self,
+        repo: &'a git2::Repository,
+    ) -> Result<Vec<(git2::Branch<'a>, git2::BranchType)>, git2::Error> {
         self.fetch_all(repo)?;
         let branches = repo.branches(None)?.flatten().collect();
         Ok(branches)
@@ -59,8 +61,8 @@ impl GitLib {
             .into_iter()
             .map(|(branch, branch_type)| {
                 let branch_type = match branch_type {
-                    BranchType::Local => "Local",
-                    BranchType::Remote => "Remote",
+                    git2::BranchType::Local => "Local",
+                    git2::BranchType::Remote => "Remote",
                 };
 
                 let branch_name = match branch.name() {
@@ -74,9 +76,9 @@ impl GitLib {
             .join("\n")
     }
 
-    pub fn checkout_str(&self, branch: &str) -> String {
-        match self.checkout(branch) {
-            Ok(()) => "Ok".to_string(),
+    pub fn checkout_str(&self, branch_name: &str) -> String {
+        match self.checkout(branch_name) {
+            Ok(()) => format!("switched to branch {branch_name}"),
             Err(error) => error.to_string(),
         }
     }
@@ -96,16 +98,17 @@ impl GitLib {
         repo.reset(&commit, ResetType::Hard, Some(checkout.force())).and_then(|()| repo.set_head(branch_name))
     }
 
-    fn add_all(&self) -> Result<(), git2::Error> {
+    fn add_all(&self) -> Result<git2::Index, git2::Error> {
         let repo = self.open_repo()?;
         let mut index = repo.index()?;
         index.add_all(["."], IndexAddOption::DEFAULT, None)?;
-        index.write()
+        index.write()?;
+        Ok(index)
     }
 
     pub fn add_all_str(&self) -> String {
         match self.add_all() {
-            Ok(()) => "Ok".to_string(),
+            Ok(index) => format!("{} files to be committed", index.len()),
             Err(e) => e.to_string(),
         }
     }
@@ -128,7 +131,7 @@ impl GitLib {
         }
     }
 
-    fn fetch_all(&self, repo: &Repository) -> Result<(), git2::Error> {
+    fn fetch_all(&self, repo: &git2::Repository) -> Result<(), git2::Error> {
         for remote_name in repo.remotes()?.iter().flatten() {
             let mut remote = repo.find_remote(remote_name)?;
             let refspecs = remote.fetch_refspecs()?;
@@ -159,6 +162,57 @@ impl GitLib {
         Ok(())
     }
 
+    pub fn status_str(&self) -> String {
+        let StatusSummary {
+            branch_name,
+            staged,
+            not_staged,
+            untracked,
+        } = match self.status() {
+            Ok(status) => status,
+            Err(e) => return e.to_string(),
+        };
+
+        let mut res = format!("on branch {branch_name}\n");
+        if staged.is_empty() && not_staged.is_empty() && untracked.is_empty() {
+            res.push_str("nothing to commit, working tree clean");
+            return res;
+        }
+
+        if !staged.is_empty() {
+            res.push_str("\nChanges to be committed:\n\t");
+            res.push_str(&staged.iter().map(FileStatus::to_string).join("\n\t"));
+        }
+
+        if !not_staged.is_empty() {
+            res.push_str("\nChanges not staged for commit:\n\t");
+            res.push_str(&not_staged.iter().map(FileStatus::to_string).join("\n\t"));
+        }
+
+        if !untracked.is_empty() {
+            res.push_str("\nUntracked files:\n\t");
+            res.push_str(&untracked.iter().map(FileStatus::to_string).join("\n\t"));
+        }
+
+        res
+    }
+
+    fn status(&self) -> Result<StatusSummary, git2::Error> {
+        let repo = self.open_repo()?;
+        let branch_name = repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name"))?.to_string();
+
+        let mut options = StatusOptions::new();
+        options.include_untracked(true).renames_from_rewrites(true).renames_head_to_index(true);
+
+        let summary =
+            repo.statuses(Some(&mut options))?.iter().fold(StatusSummary::new(branch_name), |mut summary, entry| {
+                summary.add_entry(&entry);
+                summary
+            });
+
+        Ok(summary)
+    }
+
     pub fn get_catalog(&self) -> &str {
         self.catalog.to_str().unwrap_or("")
     }
@@ -167,8 +221,8 @@ impl GitLib {
         self.catalog = Path::new(catalog).to_path_buf();
     }
 
-    fn open_repo(&self) -> Result<Repository, git2::Error> {
-        Repository::open(&self.catalog)
+    fn open_repo(&self) -> Result<git2::Repository, git2::Error> {
+        git2::Repository::open(&self.catalog)
     }
 
     fn fetch_options(&self) -> FetchOptions {
@@ -188,7 +242,7 @@ impl GitLib {
         callbacks
     }
 
-    fn find_last_commit(repo: &Repository) -> Result<Commit, git2::Error> {
+    fn find_last_commit(repo: &git2::Repository) -> Result<git2::Commit, git2::Error> {
         repo.head()?
             .resolve()?
             .peel(ObjectType::Commit)?

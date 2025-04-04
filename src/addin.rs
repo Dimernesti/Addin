@@ -1,89 +1,95 @@
 use addin1c::{AddinResult, MethodInfo, Methods, PropInfo, SimpleAddin, Variant, name};
 
-use crate::gitlib::GitLib;
+use crate::git::Git;
 
 pub struct GitAddin {
-    gitlib: GitLib,
+    git: Git,
 }
 
 impl GitAddin {
     pub fn new() -> Self {
-        Self { gitlib: GitLib::default() }
+        Self { git: Git::default() }
     }
 
     fn clone_repo(&mut self, url: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let message = self.gitlib.clone_repo_str(&url.get_string()?);
+        let message = self.git.clone_repo_str(&url.get_string()?);
         ret_value.set_str1c(message)?;
         Ok(())
     }
 
     fn get_branches(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let branches = self.gitlib.get_branches_str();
+        let branches = self.git.get_branches_str();
         ret_value.set_str1c(branches)?;
+        Ok(())
+    }
+    
+    fn status(&mut self, ret_value: &mut Variant) -> AddinResult {
+        let status = self.git.status_str();
+        ret_value.set_str1c(status)?;
         Ok(())
     }
 
     fn add_all(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let message = self.gitlib.add_all_str();
+        let message = self.git.add_all_str();
         ret_value.set_str1c(message)?;
         Ok(())
     }
 
     fn commit(&mut self, message: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let result = self.gitlib.commit_str(&message.get_string()?);
+        let result = self.git.commit_str(&message.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn checkout(&mut self, branch: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let result = self.gitlib.checkout_str(&branch.get_string()?);
+        let result = self.git.checkout_str(&branch.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn push(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let result = self.gitlib.push_str();
+        let result = self.git.push_str();
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn get_login(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.gitlib.login.clone())?;
+        ret_value.set_str1c(self.git.login.clone())?;
         Ok(())
     }
 
     fn set_login(&mut self, login: &Variant) -> AddinResult {
-        self.gitlib.login = login.get_string()?;
+        self.git.login = login.get_string()?;
         Ok(())
     }
 
     fn get_password(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.gitlib.password.clone())?;
+        ret_value.set_str1c(self.git.password.clone())?;
         Ok(())
     }
 
     fn set_password(&mut self, password: &Variant) -> AddinResult {
-        self.gitlib.password = password.get_string()?;
+        self.git.password = password.get_string()?;
         Ok(())
     }
 
     fn get_email(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.gitlib.email.clone())?;
+        ret_value.set_str1c(self.git.email.clone())?;
         Ok(())
     }
 
     fn set_email(&mut self, email: &Variant) -> AddinResult {
-        self.gitlib.email = email.get_string()?;
+        self.git.email = email.get_string()?;
         Ok(())
     }
 
     fn get_catalog(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.gitlib.get_catalog())?;
+        ret_value.set_str1c(self.git.get_catalog())?;
         Ok(())
     }
 
     fn set_catalog(&mut self, catalog: &Variant) -> AddinResult {
-        self.gitlib.set_catalog(&catalog.get_string()?);
+        self.git.set_catalog(&catalog.get_string()?);
         Ok(())
     }
 }
@@ -102,6 +108,10 @@ impl SimpleAddin for GitAddin {
             MethodInfo {
                 name: name!("GetBranches"),
                 method: Methods::Method0(Self::get_branches),
+            },
+            MethodInfo {
+                name: name!("Status"),
+                method: Methods::Method0(Self::status),
             },
             MethodInfo {
                 name: name!("AddAll"),
