@@ -22,7 +22,7 @@ impl GitAddin {
         ret_value.set_str1c(branches)?;
         Ok(())
     }
-    
+
     fn status(&mut self, ret_value: &mut Variant) -> AddinResult {
         let status = self.git.status_str();
         ret_value.set_str1c(status)?;

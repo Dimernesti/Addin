@@ -9,16 +9,16 @@
 )]
 
 mod addin;
-mod git_status;
 mod git;
+mod git_status;
 
 use std::{
     ffi::{c_int, c_long, c_void},
     sync::atomic::{AtomicI32, Ordering},
 };
 
-use addin1c::{AttachType, create_component, destroy_component, name};
 use addin::GitAddin;
+use addin1c::{AttachType, create_component, destroy_component, name};
 
 pub static PLATFORM_CAPABILITIES: AtomicI32 = AtomicI32::new(-1);
 

@@ -50,7 +50,7 @@ impl StatusSummary {
         }
 
         match entry.index_to_workdir().as_ref().map(FileStatus::from_delta) {
-            Some(status @ FileStatus { status: Delta::Added, .. }) => self.untracked.push(status),
+            Some(status @ FileStatus { status: Delta::Untracked, .. }) => self.untracked.push(status),
             Some(status) => self.not_staged.push(status),
             None => {},
         }
