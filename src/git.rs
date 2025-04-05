@@ -173,9 +173,9 @@ impl Git {
             Err(e) => return e.to_string(),
         };
 
-        let mut res = format!("on branch {branch_name}\n");
+        let mut res = format!("on branch {branch_name}");
         if staged.is_empty() && not_staged.is_empty() && untracked.is_empty() {
-            res.push_str("nothing to commit, working tree clean");
+            res.push_str("\nnothing to commit, working tree clean");
             return res;
         }
 
