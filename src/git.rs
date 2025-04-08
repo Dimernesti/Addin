@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use git2::{
+    BranchType,
     Cred,
     FetchOptions,
     IndexAddOption,
@@ -67,7 +68,7 @@ impl Git {
 
                 let branch_name = match branch.name() {
                     Ok(Some(name)) => name,
-                    Ok(None) => "INVALID UTF-8",
+                    Ok(None) => INVALID_UTF8,
                     Err(e) => &e.to_string(),
                 };
 
@@ -252,18 +253,24 @@ impl Git {
 
     pub fn get_current_branch_str(&self) -> String {
         match self.get_current_branch() {
-            Ok(current_branch) => current_branch,
+            Ok((local_branch_name, upstream_branch_name)) => format!("{local_branch_name}:{upstream_branch_name}"),
             Err(error) => error.to_string(),
         }
     }
 
-    fn get_current_branch(&self) -> Result<String, git2::Error> {
+    fn get_current_branch(&self) -> Result<(String, String), git2::Error> {
         let repo = self.open_repo()?;
-        let branch_name =
-            repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
 
+        let head = repo.head()?;
+        let head_shorthand = head.shorthand().unwrap_or("HEAD");
 
-        Ok(branch_name)
+        let local_branch = repo.find_branch(head_shorthand, BranchType::Local)?;
+        let local_branch_name = local_branch.name()?.ok_or(git2::Error::from_str(INVALID_UTF8))?;
+
+        let upstream_branch = local_branch.upstream()?;
+        let upstream_branch_name = upstream_branch.name()?.ok_or(git2::Error::from_str(INVALID_UTF8))?;
+
+        Ok((local_branch_name.to_string(), upstream_branch_name.to_string()))
     }
 
     pub fn merge_str(&self) -> String {
@@ -281,3 +288,5 @@ impl Git {
         Ok(branch_name)
     }
 }
+
+const INVALID_UTF8: &str = "INVALID UTF-8";
