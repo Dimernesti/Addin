@@ -27,24 +27,15 @@ pub struct Git {
 }
 
 impl Git {
-    fn clone_repo(&mut self, url: &str) -> Result<(), git2::Error> {
-        RepoBuilder::new().fetch_options(self.fetch_options()).clone(url, &self.catalog).map(|_repo| ())
-    }
-
     pub fn clone_repo_str(&mut self, url: &str) -> String {
         match self.clone_repo(url) {
-            Ok(()) => "Ok".to_string(),
+            Ok(()) => "Repository cloned".to_string(),
             Err(e) => e.to_string(),
         }
     }
 
-    fn get_branches<'a>(
-        &self,
-        repo: &'a git2::Repository,
-    ) -> Result<Vec<(git2::Branch<'a>, git2::BranchType)>, git2::Error> {
-        self.fetch_all(repo)?;
-        let branches = repo.branches(None)?.flatten().collect();
-        Ok(branches)
+    fn clone_repo(&mut self, url: &str) -> Result<(), git2::Error> {
+        RepoBuilder::new().fetch_options(self.fetch_options()).clone(url, &self.catalog).map(|_repo| ())
     }
 
     pub fn get_branches_str(&self) -> String {
@@ -77,6 +68,15 @@ impl Git {
             .join("\n")
     }
 
+    fn get_branches<'a>(
+        &self,
+        repo: &'a git2::Repository,
+    ) -> Result<Vec<(git2::Branch<'a>, git2::BranchType)>, git2::Error> {
+        self.fetch_all(repo)?;
+        let branches = repo.branches(None)?.flatten().collect();
+        Ok(branches)
+    }
+
     pub fn checkout_str(&self, branch_name: &str) -> String {
         match self.checkout(branch_name) {
             Ok(()) => format!("switched to branch {branch_name}"),
@@ -99,6 +99,13 @@ impl Git {
         repo.reset(&commit, ResetType::Hard, Some(checkout.force())).and_then(|()| repo.set_head(branch_name))
     }
 
+    pub fn add_all_str(&self) -> String {
+        match self.add_all() {
+            Ok(index) => format!("{} files to be committed", index.len()),
+            Err(e) => e.to_string(),
+        }
+    }
+
     fn add_all(&self) -> Result<git2::Index, git2::Error> {
         let repo = self.open_repo()?;
         let mut index = repo.index()?;
@@ -107,9 +114,9 @@ impl Git {
         Ok(index)
     }
 
-    pub fn add_all_str(&self) -> String {
-        match self.add_all() {
-            Ok(index) => format!("{} files to be committed", index.len()),
+    pub fn commit_str(&self, message: &str) -> String {
+        match self.commit(message) {
+            Ok(oid) => format!("commit {oid}"),
             Err(e) => e.to_string(),
         }
     }
@@ -123,24 +130,6 @@ impl Git {
 
         let author = Signature::now(&self.login, &self.email)?;
         repo.commit(Some("HEAD"), &author, &author, message, &tree, &[&parent_commit])
-    }
-
-    pub fn commit_str(&self, message: &str) -> String {
-        match self.commit(message) {
-            Ok(_oid) => "Ok".to_string(),
-            Err(e) => e.to_string(),
-        }
-    }
-
-    fn fetch_all(&self, repo: &git2::Repository) -> Result<(), git2::Error> {
-        for remote_name in repo.remotes()?.iter().flatten() {
-            let mut remote = repo.find_remote(remote_name)?;
-            let refspecs = remote.fetch_refspecs()?;
-            let refspecs = refspecs.iter().flatten().collect_vec();
-            let mut opts = self.fetch_options();
-            remote.fetch(&refspecs, Some(&mut opts), None)?;
-        }
-        Ok(())
     }
 
     pub fn push_str(&self) -> String {
@@ -214,43 +203,6 @@ impl Git {
         Ok(summary)
     }
 
-    pub fn get_catalog(&self) -> &str {
-        self.catalog.to_str().unwrap_or("")
-    }
-
-    pub fn set_catalog(&mut self, catalog: &str) {
-        self.catalog = Path::new(catalog).to_path_buf();
-    }
-
-    fn open_repo(&self) -> Result<git2::Repository, git2::Error> {
-        git2::Repository::open(&self.catalog)
-    }
-
-    fn fetch_options(&self) -> FetchOptions {
-        let callbacks = self.register_credentials(RemoteCallbacks::new());
-        let mut options = FetchOptions::new();
-        options.remote_callbacks(callbacks);
-        options
-    }
-
-    fn register_credentials<'a, 'b>(&'a self, mut callbacks: RemoteCallbacks<'b>) -> RemoteCallbacks<'b>
-    where
-        'a: 'b,
-    {
-        callbacks.credentials(|_url, _username_from_url, _allowed_types| {
-            Cred::userpass_plaintext(&self.login, &self.password)
-        });
-        callbacks
-    }
-
-    fn find_last_commit(repo: &git2::Repository) -> Result<git2::Commit, git2::Error> {
-        repo.head()?
-            .resolve()?
-            .peel(ObjectType::Commit)?
-            .into_commit()
-            .map_err(|_| git2::Error::from_str("Couldn't find commit"))
-    }
-
     pub fn get_current_branch_str(&self) -> String {
         match self.get_current_branch() {
             Ok((local_branch_name, upstream_branch_name)) => format!("{local_branch_name}:{upstream_branch_name}"),
@@ -286,6 +238,54 @@ impl Git {
             repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
 
         Ok(branch_name)
+    }
+
+    pub fn get_catalog(&self) -> &str {
+        self.catalog.to_str().unwrap_or("")
+    }
+
+    pub fn set_catalog(&mut self, catalog: &str) {
+        self.catalog = Path::new(catalog).to_path_buf();
+    }
+
+    fn open_repo(&self) -> Result<git2::Repository, git2::Error> {
+        git2::Repository::open(&self.catalog)
+    }
+
+    fn fetch_all(&self, repo: &git2::Repository) -> Result<(), git2::Error> {
+        for remote_name in repo.remotes()?.iter().flatten() {
+            let mut remote = repo.find_remote(remote_name)?;
+            let refspecs = remote.fetch_refspecs()?;
+            let refspecs = refspecs.iter().flatten().collect_vec();
+            let mut opts = self.fetch_options();
+            remote.fetch(&refspecs, Some(&mut opts), None)?;
+        }
+        Ok(())
+    }
+
+    fn fetch_options(&self) -> FetchOptions {
+        let callbacks = self.register_credentials(RemoteCallbacks::new());
+        let mut options = FetchOptions::new();
+        options.remote_callbacks(callbacks);
+        options
+    }
+
+    fn register_credentials<'a, 'b>(&'a self, mut callbacks: RemoteCallbacks<'b>) -> RemoteCallbacks<'b>
+    where
+        'a: 'b,
+    {
+        callbacks.credentials(|_url, _username_from_url, _allowed_types| {
+            Cred::userpass_plaintext(&self.login, &self.password)
+        });
+        callbacks
+    }
+
+    fn find_last_commit(repo: &git2::Repository) -> Result<git2::Commit, git2::Error> {
+        repo.head()?
+            .resolve()?
+            .peel(ObjectType::Commit)?
+            .into_commit()
+            .map_err(|_| git2::Error::from_str("Couldn't find commit"))
     }
 }
 
