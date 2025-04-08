@@ -259,7 +259,9 @@ impl Git {
 
     fn get_current_branch(&self) -> Result<String, git2::Error> {
         let repo = self.open_repo()?;
-        let branch_name = repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
+        let branch_name =
+            repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
+
 
         Ok(branch_name)
     }
@@ -273,7 +275,8 @@ impl Git {
 
     fn merge(&self) -> Result<String, git2::Error> {
         let repo = self.open_repo()?;
-        let branch_name = repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
+        let branch_name =
+            repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
 
         Ok(branch_name)
     }
