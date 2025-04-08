@@ -249,4 +249,32 @@ impl Git {
             .into_commit()
             .map_err(|_| git2::Error::from_str("Couldn't find commit"))
     }
+
+    pub fn get_current_branch_str(&self) -> String {
+        match self.get_current_branch() {
+            Ok(current_branch) => current_branch,
+            Err(error) => error.to_string(),
+        }
+    }
+
+    fn get_current_branch(&self) -> Result<String, git2::Error> {
+        let repo = self.open_repo()?;
+        let branch_name = repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
+
+        Ok(branch_name)
+    }
+
+    pub fn merge_str(&self) -> String {
+        match self.merge() {
+            Ok(current_branch) => current_branch,
+            Err(error) => error.to_string(),
+        }
+    }
+
+    fn merge(&self) -> Result<String, git2::Error> {
+        let repo = self.open_repo()?;
+        let branch_name = repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
+
+        Ok(branch_name)
+    }
 }

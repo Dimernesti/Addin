@@ -53,6 +53,18 @@ impl GitAddin {
         Ok(())
     }
 
+    fn get_current_branch(&mut self, ret_value: &mut Variant) -> AddinResult {
+        let result = self.git.get_current_branch_str();
+        ret_value.set_str1c(result)?;
+        Ok(())
+    }
+
+    fn merge(&mut self, ret_value: &mut Variant) -> AddinResult {
+        let result = self.git.merge_str();
+        ret_value.set_str1c(result)?;
+        Ok(())
+    }
+
     fn get_login(&mut self, ret_value: &mut Variant) -> AddinResult {
         ret_value.set_str1c(self.git.login.clone())?;
         Ok(())
@@ -128,6 +140,14 @@ impl SimpleAddin for GitAddin {
             MethodInfo {
                 name: name!("Push"),
                 method: Methods::Method0(Self::push),
+            },
+            MethodInfo {
+                name: name!("GetCurrentBranch"),
+                method: Methods::Method0(Self::get_current_branch),
+            },
+            MethodInfo {
+                name: name!("Merge"),
+                method: Methods::Method0(Self::merge),
             },
         ]
     }
