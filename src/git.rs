@@ -96,7 +96,10 @@ impl Git {
         let commit = branch.get().resolve()?.peel(ObjectType::Commit)?;
         let mut checkout = CheckoutBuilder::new();
 
-        repo.reset(&commit, ResetType::Hard, Some(checkout.force())).and_then(|()| repo.set_head(branch_name))
+        let reference = branch.into_reference();
+        let refname = reference.name().ok_or(git2::Error::from_str("cannot obtain branch refname"))?;
+
+        repo.reset(&commit, ResetType::Hard, Some(checkout.force())).and_then(|()| repo.set_head(refname))
     }
 
     pub fn add_all_str(&self) -> String {
@@ -234,6 +237,9 @@ impl Git {
 
     fn merge(&self) -> Result<String, git2::Error> {
         let repo = self.open_repo()?;
+        self.fetch_all(&repo)?;
+        // self.checkout(branch_name)?;
+        
         let branch_name =
             repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
 
