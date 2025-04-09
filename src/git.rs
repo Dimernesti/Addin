@@ -86,20 +86,27 @@ impl Git {
 
     fn checkout(&self, branch_name: &str) -> Result<(), git2::Error> {
         let repo = self.open_repo()?;
+        self.fetch_all(&repo)?;
 
-        let (branch, _) = repo
+        let remote_branch_name = format!("origin/{branch_name}");
+
+        let (branch, _brach_type) = repo
             .branches(None)?
             .flatten()
-            .find(|(branch, _)| branch.name() == Ok(Some(branch_name)))
+            .find(|(branch, branch_type)| match branch_type {
+                BranchType::Local => Ok(Some(branch_name)) == branch.name(),
+                BranchType::Remote => Ok(Some(remote_branch_name.as_str())) == branch.name(),
+            })
             .ok_or(git2::Error::from_str("no branch with this name"))?;
 
         let commit = branch.get().resolve()?.peel(ObjectType::Commit)?;
         let mut checkout = CheckoutBuilder::new();
 
         let reference = branch.into_reference();
-        let refname = reference.name().ok_or(git2::Error::from_str("cannot obtain branch refname"))?;
+        let refname = reference.shorthand().ok_or(git2::Error::from_str("cannot obtain branch refname"))?;
 
-        repo.reset(&commit, ResetType::Hard, Some(checkout.force())).and_then(|()| repo.set_head(refname))
+        repo.reset(&commit, ResetType::Hard, Some(checkout.force()))
+            .and_then(|()| repo.set_head(&format!("refs/heads/{refname}")))
     }
 
     pub fn add_all_str(&self) -> String {
@@ -239,7 +246,7 @@ impl Git {
         let repo = self.open_repo()?;
         self.fetch_all(&repo)?;
         // self.checkout(branch_name)?;
-        
+
         let branch_name =
             repo.head()?.name().ok_or_else(|| git2::Error::from_str("no branch name in HEAD"))?.to_string();
 
