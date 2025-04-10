@@ -268,10 +268,8 @@ impl Git {
     fn fetch_all(&self, repo: &git2::Repository) -> Result<(), git2::Error> {
         for remote_name in repo.remotes()?.iter().flatten() {
             let mut remote = repo.find_remote(remote_name)?;
-            let refspecs = remote.fetch_refspecs()?;
-            let refspecs = refspecs.iter().flatten().collect_vec();
             let mut opts = self.fetch_options();
-            remote.fetch(&refspecs, Some(&mut opts), None)?;
+            remote.fetch(&[] as &[&str], Some(&mut opts), None)?;
         }
         Ok(())
     }
