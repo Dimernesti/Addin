@@ -1,6 +1,5 @@
 use clap::{Args, Parser, Subcommand};
 use git_core::{AuthType, Config, Repo};
-use git2::BranchType;
 use itertools::Itertools;
 
 
@@ -41,7 +40,10 @@ fn main() -> Result<(), git2::Error> {
             let upstream = branch_name(&upstream);
             println!("{local} -- {upstream}");
         },
-        Commands::Checkout(checkout_args) => todo!(),
+        Commands::Checkout(CheckoutArgs { branch_name }) => {
+            let res = repo.checkout(&branch_name);
+            println!("{res:?}");
+        },
     }
 
     Ok(())

@@ -11,7 +11,6 @@ use git2::{
     PushOptions,
     RemoteCallbacks,
     Repository,
-    ResetType,
     Signature,
     StatusOptions,
     build::{CheckoutBuilder, RepoBuilder},
@@ -119,7 +118,7 @@ impl<'a> Repo<'a> {
 
         let remote_branch_name = format!("origin/{branch_name}");
 
-        let (branch, _brach_type) = self
+        let (branch, brach_type) = self
             .repo
             .branches(None)?
             .flatten()
@@ -129,16 +128,31 @@ impl<'a> Repo<'a> {
             })
             .ok_or(git2::Error::from_str("no branch with this name"))?;
 
-        let commit = branch.get().resolve()?.peel(ObjectType::Commit)?;
-        let mut checkout = CheckoutBuilder::new();
+        let commit = branch
+            .get()
+            .resolve()?
+            .peel(ObjectType::Commit)?
+            .into_commit()
+            .map_err(|_e| git2::Error::from_str("Failed to obtain commit"))?;
 
-        let reference = branch.into_reference();
-        let refname =
-            reference.shorthand().ok_or(git2::Error::from_str("cannot obtain branch refname"))?;
+        if let BranchType::Remote = brach_type {
+            let local_branch = self.repo.branch(branch_name, &commit, false)?;
+            let mut local_branch_ref = local_branch.into_reference();
 
-        self.repo
-            .reset(&commit, ResetType::Hard, Some(checkout.force()))
-            .and_then(|()| self.repo.set_head(&format!("refs/heads/{refname}")))
+            let remote_branch_ref = branch.into_reference();
+            let target = remote_branch_ref
+                .target()
+                .ok_or_else(|| git2::Error::from_str("Invalid target OID"))?;
+
+            local_branch_ref.set_target(target, "Set upstream")?;
+        }
+
+        self.repo.set_head(&format!("refs/heads/{branch_name}"))?;
+        self.repo.checkout_head(Some(
+            CheckoutBuilder::default().allow_conflicts(true).force(), // Optional, depends on whether you want a force checkout
+        ))?;
+
+        Ok(())
     }
 
     pub fn push(&self) -> Result<(), git2::Error> {
