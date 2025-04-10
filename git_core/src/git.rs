@@ -16,7 +16,7 @@ use git2::{
     build::{CheckoutBuilder, RepoBuilder},
 };
 
-use crate::git_status::StatusSummary;
+use crate::{INVALID_UTF8, git_status::StatusSummary};
 
 #[derive(Clone, Default)]
 pub enum AuthType {
@@ -24,6 +24,7 @@ pub enum AuthType {
     #[default]
     None,
 }
+
 
 #[derive(Clone, Default)]
 pub struct Config {
@@ -61,14 +62,14 @@ impl<'a> Repo<'a> {
         Ok(self.repo.branches(None)?.flatten())
     }
 
-    pub fn current_branch(&self) -> Result<(Branch, Branch), git2::Error> {
+    pub fn current_branch(&self) -> Result<TrackedBranch, git2::Error> {
         let head = self.repo.head()?;
         let head_shorthand = head.shorthand().unwrap_or("HEAD");
 
-        let local_branch = self.repo.find_branch(head_shorthand, BranchType::Local)?;
-        let upstream_branch = local_branch.upstream()?;
+        let local = self.repo.find_branch(head_shorthand, BranchType::Local)?;
+        let upstream = local.upstream().ok();
 
-        Ok((local_branch, upstream_branch))
+        Ok(TrackedBranch { local, upstream })
     }
 
     pub fn status(&self) -> Result<StatusSummary, git2::Error> {
@@ -76,7 +77,9 @@ impl<'a> Repo<'a> {
             .repo
             .head()?
             .shorthand()
-            .ok_or_else(|| git2::Error::from_str("no branch name"))?
+            .ok_or_else(|| {
+                git2::Error::from_str(&format!("Current branch name is {INVALID_UTF8}"))
+            })?
             .to_string();
 
         let mut options = StatusOptions::new();
@@ -136,15 +139,9 @@ impl<'a> Repo<'a> {
             .map_err(|_e| git2::Error::from_str("Failed to obtain commit"))?;
 
         if let BranchType::Remote = brach_type {
-            let local_branch = self.repo.branch(branch_name, &commit, false)?;
-            let mut local_branch_ref = local_branch.into_reference();
-
-            let remote_branch_ref = branch.into_reference();
-            let target = remote_branch_ref
-                .target()
-                .ok_or_else(|| git2::Error::from_str("Invalid target OID"))?;
-
-            local_branch_ref.set_target(target, "Set upstream")?;
+            self.repo
+                .branch(branch_name, &commit, false)?
+                .set_upstream(Some(&remote_branch_name))?;
         }
 
         self.repo.set_head(&format!("refs/heads/{branch_name}"))?;
@@ -220,5 +217,28 @@ impl<'a> Repo<'a> {
             .peel(ObjectType::Commit)?
             .into_commit()
             .map_err(|_| git2::Error::from_str("Couldn't find last commit"))
+    }
+}
+
+pub fn branch_name(branch: &git2::Branch) -> String {
+    match branch.name() {
+        Ok(Some(name)) => name.to_string(),
+        Ok(None) => INVALID_UTF8.to_string(),
+        Err(e) => e.to_string(),
+    }
+}
+
+pub struct TrackedBranch<'repo> {
+    pub local: Branch<'repo>,
+    pub upstream: Option<Branch<'repo>>,
+}
+
+impl TrackedBranch<'_> {
+    pub fn local_name(&self) -> String {
+        branch_name(&self.local)
+    }
+
+    pub fn upstream_name(&self) -> Option<String> {
+        self.upstream.as_ref().map(branch_name)
     }
 }

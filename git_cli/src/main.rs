@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use git_core::{AuthType, Config, Repo};
+use git_core::{AuthType, Config, Repo, git::branch_name};
 use itertools::Itertools;
 
 
@@ -32,13 +32,16 @@ fn main() -> Result<(), git2::Error> {
                 .map(|(branch, branch_type)| format!("{branch_type:?} -- {}", branch_name(&branch)))
                 .join("\n");
 
-            println!("{branches:?}");
+            println!("{branches}");
         },
         Commands::CurrentBranch => {
-            let (local, upstream) = repo.current_branch()?;
-            let local = branch_name(&local);
-            let upstream = branch_name(&upstream);
-            println!("{local} -- {upstream}");
+            let current_branch = repo.current_branch()?;
+
+            let local = current_branch.local_name();
+            let upstream = current_branch
+                .upstream_name()
+                .unwrap_or_else(|| "[No upstream branch tracked]".to_string());
+            println!("{local}:{upstream}");
         },
         Commands::Checkout(CheckoutArgs { branch_name }) => {
             let res = repo.checkout(&branch_name);
@@ -80,14 +83,4 @@ struct CommitArgs {
 #[derive(Args)]
 struct CheckoutArgs {
     branch_name: String,
-}
-
-const INVALID_UTF8: &str = "INVALID UTF-8";
-
-fn branch_name(branch: &git2::Branch) -> String {
-    match branch.name() {
-        Ok(Some(name)) => name.to_string(),
-        Ok(None) => INVALID_UTF8.to_string(),
-        Err(e) => e.to_string(),
-    }
 }

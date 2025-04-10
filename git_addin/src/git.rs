@@ -1,5 +1,6 @@
 use git_core::{
     FileStatus,
+    INVALID_UTF8,
     StatusSummary,
     git::{Config, Repo},
 };
@@ -76,17 +77,13 @@ impl Git {
     }
 
     fn current_branch_(&self) -> Result<String, git2::Error> {
-        fn branch_name(branch: &git2::Branch) -> String {
-            match branch.name() {
-                Ok(Some(name)) => name.to_string(),
-                Ok(None) => INVALID_UTF8.to_string(),
-                Err(e) => e.to_string(),
-            }
-        }
-
         let repo = self.open_repo()?;
-        let (local, upstream) = repo.current_branch()?;
-        let (local, upstream) = (branch_name(&local), branch_name(&upstream));
+        let current_branch = repo.current_branch()?;
+        let local = current_branch.local_name();
+        let upstream = current_branch
+            .upstream_name()
+            .unwrap_or_else(|| "[No upstream branch tracked]".to_string());
+
         Ok(format!("{local}:{upstream}"))
     }
 
@@ -144,5 +141,3 @@ impl Git {
         Repo::open(&self.config)
     }
 }
-
-const INVALID_UTF8: &str = "INVALID UTF-8";

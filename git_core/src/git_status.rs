@@ -2,6 +2,8 @@ use std::path::Path;
 
 use git2::{Delta, DiffDelta, StatusEntry};
 
+use crate::INVALID_UTF8;
+
 #[derive(Debug, Clone)]
 pub struct FileStatus {
     pub status: Delta,
@@ -17,13 +19,13 @@ impl FileStatus {
                 .old_file()
                 .path()
                 .and_then(Path::to_str)
-                .unwrap_or("INVALID UTF-8")
+                .unwrap_or(INVALID_UTF8)
                 .to_string(),
             new_file: delta
                 .new_file()
                 .path()
                 .and_then(Path::to_str)
-                .unwrap_or("INVALID UTF-8")
+                .unwrap_or(INVALID_UTF8)
                 .to_string(),
         }
     }
