@@ -145,9 +145,7 @@ impl<'a> Repo<'a> {
         }
 
         self.repo.set_head(&format!("refs/heads/{branch_name}"))?;
-        self.repo.checkout_head(Some(
-            CheckoutBuilder::default().allow_conflicts(true).force(), // Optional, depends on whether you want a force checkout
-        ))?;
+        self.repo.checkout_head(Some(CheckoutBuilder::default().allow_conflicts(true).force()))?;
 
         Ok(())
     }
