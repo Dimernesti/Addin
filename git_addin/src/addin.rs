@@ -1,4 +1,5 @@
 use addin1c::{AddinResult, MethodInfo, Methods, PropInfo, SimpleAddin, Variant, name};
+use git_core::AuthType;
 
 use crate::git::Git;
 
@@ -12,96 +13,101 @@ impl GitAddin {
     }
 
     fn clone_repo(&mut self, url: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let message = self.git.clone_repo_str(&url.get_string()?);
+        let message = self.git.clone_repo(&url.get_string()?);
         ret_value.set_str1c(message)?;
         Ok(())
     }
 
     fn get_branches(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let branches = self.git.get_branches_str();
+        let branches = self.git.branches();
         ret_value.set_str1c(branches)?;
         Ok(())
     }
 
+    fn get_current_branch(&mut self, ret_value: &mut Variant) -> AddinResult {
+        let result = self.git.current_branch();
+        ret_value.set_str1c(result)?;
+        Ok(())
+    }
+
     fn status(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let status = self.git.status_str();
+        let status = self.git.status();
         ret_value.set_str1c(status)?;
         Ok(())
     }
 
     fn add_all(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let message = self.git.add_all_str();
+        let message = self.git.add_all();
         ret_value.set_str1c(message)?;
         Ok(())
     }
 
     fn commit(&mut self, message: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let result = self.git.commit_str(&message.get_string()?);
+        let result = self.git.commit(&message.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn checkout(&mut self, branch: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let result = self.git.checkout_str(&branch.get_string()?);
+        let result = self.git.checkout(&branch.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn push(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let result = self.git.push_str();
-        ret_value.set_str1c(result)?;
-        Ok(())
-    }
-
-    fn get_current_branch(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let result = self.git.get_current_branch_str();
+        let result = self.git.push();
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn merge(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let result = self.git.merge_str();
+        let result = self.git.merge();
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn get_login(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.git.login.clone())?;
+        ret_value.set_str1c(self.git.config.username.clone())?;
         Ok(())
     }
 
     fn set_login(&mut self, login: &Variant) -> AddinResult {
-        self.git.login = login.get_string()?;
+        self.git.config.username = login.get_string()?;
         Ok(())
     }
 
     fn get_password(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.git.password.clone())?;
+        let password = match &self.git.config.auth {
+            AuthType::Password(password) => password,
+            AuthType::None => "",
+        };
+
+        ret_value.set_str1c(password)?;
         Ok(())
     }
 
     fn set_password(&mut self, password: &Variant) -> AddinResult {
-        self.git.password = password.get_string()?;
+        self.git.config.auth = AuthType::Password(password.get_string()?);
         Ok(())
     }
 
     fn get_email(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.git.email.clone())?;
+        ret_value.set_str1c(self.git.config.email.as_str())?;
         Ok(())
     }
 
     fn set_email(&mut self, email: &Variant) -> AddinResult {
-        self.git.email = email.get_string()?;
+        self.git.config.email = email.get_string()?;
         Ok(())
     }
 
     fn get_catalog(&mut self, ret_value: &mut Variant) -> AddinResult {
-        ret_value.set_str1c(self.git.get_catalog())?;
+        ret_value.set_str1c(self.git.config.path.to_str().unwrap_or(""))?;
         Ok(())
     }
 
     fn set_catalog(&mut self, catalog: &Variant) -> AddinResult {
-        self.git.set_catalog(&catalog.get_string()?);
+        self.git.config.path = catalog.get_string()?.into();
         Ok(())
     }
 }

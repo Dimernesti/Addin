@@ -2,7 +2,7 @@ use std::path::Path;
 
 use git2::{Delta, DiffDelta, StatusEntry};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileStatus {
     pub status: Delta,
     pub old_file: String,
@@ -13,8 +13,18 @@ impl FileStatus {
     fn from_delta(delta: &DiffDelta) -> Self {
         Self {
             status: delta.status(),
-            old_file: delta.old_file().path().and_then(Path::to_str).unwrap_or("INVALID UTF-8").to_string(),
-            new_file: delta.new_file().path().and_then(Path::to_str).unwrap_or("INVALID UTF-8").to_string(),
+            old_file: delta
+                .old_file()
+                .path()
+                .and_then(Path::to_str)
+                .unwrap_or("INVALID UTF-8")
+                .to_string(),
+            new_file: delta
+                .new_file()
+                .path()
+                .and_then(Path::to_str)
+                .unwrap_or("INVALID UTF-8")
+                .to_string(),
         }
     }
 }
@@ -27,6 +37,7 @@ impl FileStatus {
 /// and paths in the working tree that are not tracked by Git (and are not ignored by gitignore[5]).
 /// The first are what you would commit by running git commit;
 /// the second and third are what you could commit by running git add before running git commit.
+#[derive(Debug, Clone)]
 pub struct StatusSummary {
     pub branch_name: String,
     pub staged: Vec<FileStatus>,
@@ -50,7 +61,8 @@ impl StatusSummary {
         }
 
         match entry.index_to_workdir().as_ref().map(FileStatus::from_delta) {
-            Some(status @ FileStatus { status: Delta::Untracked, .. }) => self.untracked.push(status),
+            Some(status @ FileStatus { status: Delta::Untracked, .. }) =>
+                self.untracked.push(status),
             Some(status) => self.not_staged.push(status),
             None => {},
         }

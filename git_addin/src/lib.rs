@@ -10,7 +10,6 @@
 
 mod addin;
 mod git;
-mod git_status;
 
 use std::{
     ffi::{c_int, c_long, c_void},

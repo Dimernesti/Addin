@@ -1,0 +1,13 @@
+[package]
+name = "git_addin"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+addin1c = "0.5.0"
+git_core = { path = "../git_core" }
+git2 = { workspace = true }
+itertools = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]

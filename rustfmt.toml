@@ -11,7 +11,7 @@ reorder_impl_items = true
 use_field_init_shorthand = true
 
 blank_lines_upper_bound = 2
-max_width = 120
+max_width = 100
 #fn_single_line = true
 match_arm_blocks = false
 match_block_trailing_comma = true
