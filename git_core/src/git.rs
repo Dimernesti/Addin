@@ -5,6 +5,7 @@ use git2::{
     BranchType,
     Cred,
     FetchOptions,
+    FetchPrune,
     IndexAddOption,
     ObjectType,
     Oid,
@@ -187,6 +188,7 @@ impl<'a> Repo<'a> {
         let callbacks = Self::register_credentials(config, RemoteCallbacks::new());
         let mut options = FetchOptions::new();
         options.remote_callbacks(callbacks);
+        options.prune(FetchPrune::On);
         options
     }
 

@@ -4,11 +4,14 @@ use itertools::Itertools;
 
 
 fn main() -> Result<(), git2::Error> {
+    let repo_name = std::env::var("REPO_NAME").expect("repo name is not set");
+    let root_path = std::env::var("REPO_ROOT_PATH").expect("repo root path is not set");
+
     let config = Config {
         username: "RUST".to_string(),
         auth: AuthType::None,
         email: "rust@rust.rs".to_string(),
-        path: "/home/vasich/projects/smolin/test_repo".into(),
+        path: format!("{root_path}/test_repo/{repo_name}").into(),
     };
 
     let repo = Repo::open(&config).expect("failed to open repository");
@@ -29,7 +32,10 @@ fn main() -> Result<(), git2::Error> {
         Commands::Branches => {
             let branches = repo
                 .branches()?
-                .map(|(branch, branch_type)| format!("{branch_type:?} -- {}", branch_name(&branch)))
+                .map(|(branch, branch_type)| {
+                    let branch_name = branch_name(&branch);
+                    format!("{branch_type:?} -- {branch_name}")
+                })
                 .join("\n");
 
             println!("{branches}");

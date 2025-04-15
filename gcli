@@ -1,3 +1,6 @@
 #!/bin/bash
 
+export REPO_NAME=libgit2_testing
+export REPO_ROOT_PATH="$HOME/projects/smolin/Addin"
+
 cargo run -p git_cli -- "$@"
