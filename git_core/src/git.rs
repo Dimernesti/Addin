@@ -7,6 +7,7 @@ use git2::{
     FetchOptions,
     FetchPrune,
     IndexAddOption,
+    IntoCString,
     ObjectType,
     Oid,
     PushOptions,
@@ -100,11 +101,19 @@ impl<'a> Repo<'a> {
         Ok(summary)
     }
 
-    pub fn add_all(&self) -> Result<git2::Index, git2::Error> {
+    pub fn add<T, I>(&self, pathspecks: I) -> Result<git2::Index, git2::Error>
+    where
+        T: IntoCString,
+        I: IntoIterator<Item = T>,
+    {
         let mut index = self.repo.index()?;
-        index.add_all(["."], IndexAddOption::DEFAULT, None)?;
+        index.add_all(pathspecks, IndexAddOption::DEFAULT, None)?;
         index.write()?;
         Ok(index)
+    }
+
+    pub fn add_all(&self) -> Result<git2::Index, git2::Error> {
+        self.add(&["."])
     }
 
     pub fn commit(&self, message: &str) -> Result<Oid, git2::Error> {
@@ -158,6 +167,17 @@ impl<'a> Repo<'a> {
             repo_head.name().ok_or_else(|| git2::Error::from_str("no branch name"))?;
         let mut options = Self::push_options(self.config);
         origin.push(&[branch_name], Some(&mut options))?;
+
+        Ok(())
+    }
+
+    pub fn pull(&self) -> Result<(), git2::Error> {
+        Ok(())
+    }
+
+    pub fn merge(&self, branch_from: &str, branch_to: Option<&str>) -> Result<(), git2::Error> {
+        // self.repo.
+        // self.repo.merge(annotated_commits, merge_opts, checkout_opts)
 
         Ok(())
     }

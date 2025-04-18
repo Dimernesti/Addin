@@ -116,8 +116,8 @@ impl Git {
     }
 
     fn add_all_(&self) -> Result<String, git2::Error> {
-        let index = self.open_repo()?.add_all()?;
-        Ok(format!("{} files to be committed", index.len()))
+        let _index = self.open_repo()?.add_all()?;
+        Ok("files added".to_string())
     }
 
     fn commit_(&self, message: &str) -> Result<String, git2::Error> {
