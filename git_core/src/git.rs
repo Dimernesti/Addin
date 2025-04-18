@@ -171,7 +171,16 @@ impl<'a> Repo<'a> {
         Ok(())
     }
 
-    pub fn pull(&self) -> Result<(), git2::Error> {
+    pub fn pull(&self, branch_name: &str) -> Result<(), git2::Error> {
+        let local_branch = self.repo.find_branch(branch_name, BranchType::Local)?;
+        let remote_branch = local_branch.upstream()?;
+        let remote_commit = remote_branch.into_reference().peel_to_commit()?;
+        let annotated_commit = self.repo.find_annotated_commit(remote_commit.id())?;
+        let (analisis, preference) = self.repo.merge_analysis_for_ref(&local_branch.into_reference(), &[&annotated_commit])?;
+        if analisis.is_fast_forward(){
+            let mut local_branch = self.repo.find_branch(branch_name, BranchType::Local)?;
+            let _referense = local_branch.get_mut().set_target(remote_commit.id(), "string")?;
+        }
         Ok(())
     }
 

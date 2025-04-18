@@ -60,6 +60,12 @@ impl GitAddin {
         Ok(())
     }
 
+    fn pull(&mut self, ret_value: &mut Variant) -> AddinResult {
+        let result = self.git.pull("master");
+        ret_value.set_str1c(result)?;
+        Ok(())
+    }
+
     fn merge(&mut self, ret_value: &mut Variant) -> AddinResult {
         let result = self.git.merge();
         ret_value.set_str1c(result)?;
@@ -154,6 +160,10 @@ impl SimpleAddin for GitAddin {
             MethodInfo {
                 name: name!("Merge"),
                 method: Methods::Method0(Self::merge),
+            },
+            MethodInfo {
+                name: name!("Pull"),
+                method: Methods::Method0(Self::pull),
             },
         ]
     }

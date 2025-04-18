@@ -47,6 +47,11 @@ impl Git {
             .map_or_else(|e| e.to_string(), |()| "Successfully pushed the branch".to_string())
     }
 
+    pub fn pull(&self, branch_name: &str) -> String {
+        self.pull_(branch_name)
+            .map_or_else(|e| e.to_string(), |()| "Successfully pulled the branch".to_string())
+    }
+
     pub fn merge(&self) -> String {
         self.merge_()
             .map_or_else(|e| e.to_string(), |()| "Successfully merged the branch".to_string())
@@ -130,6 +135,10 @@ impl Git {
 
     fn push_(&self) -> Result<(), git2::Error> {
         self.open_repo()?.push()
+    }
+
+    fn pull_(&self, branch_name: &str) -> Result<(), git2::Error> {
+        self.open_repo()?.pull(branch_name)
     }
 
     #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
