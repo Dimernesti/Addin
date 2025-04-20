@@ -60,8 +60,8 @@ impl GitAddin {
         Ok(())
     }
 
-    fn pull(&mut self, ret_value: &mut Variant) -> AddinResult {
-        let result = self.git.pull("master");
+    fn pull(&mut self, branch_name: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        let result = self.git.pull(&branch_name.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
@@ -116,6 +116,7 @@ impl GitAddin {
         self.git.config.path = catalog.get_string()?.into();
         Ok(())
     }
+
 }
 
 impl SimpleAddin for GitAddin {
@@ -158,12 +159,12 @@ impl SimpleAddin for GitAddin {
                 method: Methods::Method0(Self::get_current_branch),
             },
             MethodInfo {
-                name: name!("Merge"),
-                method: Methods::Method0(Self::merge),
+                name: name!("Pull"),
+                method: Methods::Method1(Self::pull),
             },
             MethodInfo {
-                name: name!("Pull"),
-                method: Methods::Method0(Self::pull),
+                name: name!("Merge"),
+                method: Methods::Method0(Self::merge),
             },
         ]
     }
