@@ -4,6 +4,7 @@ use git_core::{
     StatusSummary,
     git::{Config, Repo},
 };
+use git2::Oid;
 use itertools::Itertools;
 
 #[derive(Default)]
@@ -49,7 +50,7 @@ impl Git {
 
     pub fn pull(&self, branch_name: &str) -> String {
         self.pull_(branch_name)
-            .map_or_else(|e| e.to_string(), |()| "Successfully pulled the branch".to_string())
+            .map_or_else(|e| e.to_string(), |(old_id, new_id)| format!("Successfully pulled branch - {branch_name}, old commit - {old_id}, new commit - {new_id}"))
     }
 
     pub fn merge(&self) -> String {
@@ -137,7 +138,7 @@ impl Git {
         self.open_repo()?.push()
     }
 
-    fn pull_(&self, branch_name: &str) -> Result<(), git2::Error> {
+    fn pull_(&self, branch_name: &str) -> Result<(Oid, Oid), git2::Error> {
         self.open_repo()?.pull(branch_name)
     }
 
