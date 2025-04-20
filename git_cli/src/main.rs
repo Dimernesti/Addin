@@ -68,6 +68,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             let res = repo.push();
             println!("{res:?}")
         },
+        Commands::Pull(PullArgs { branch_name }) => {
+            let repo = Repo::open(&config).expect("failed to open repository");
+            let res = repo.pull(&branch_name);
+            println!("{res:?}");
+        },
     }
 
     Ok(())
@@ -97,6 +102,7 @@ enum Commands {
     CurrentBranch,
     Checkout(CheckoutArgs),
     Push,
+    Pull(PullArgs),
 }
 
 #[derive(Args)]
@@ -111,6 +117,11 @@ struct CommitArgs {
 
 #[derive(Args)]
 struct CheckoutArgs {
+    branch_name: String,
+}
+
+#[derive(Args)]
+struct PullArgs {
     branch_name: String,
 }
 
