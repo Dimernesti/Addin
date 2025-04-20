@@ -155,7 +155,7 @@ fn print_status_summary(summary: &StatusSummary) {
         }
     };
 
-    print_section("Changes to be committed:", &staged);
-    print_section("Changes not staged for commit:", &not_staged);
-    print_section("Untracked files:", &untracked);
+    print_section("Changes to be committed:", staged);
+    print_section("Changes not staged for commit:", not_staged);
+    print_section("Untracked files:", untracked);
 }

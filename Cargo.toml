@@ -5,3 +5,8 @@ members = ["git_addin", "git_cli", "git_core"]
 [workspace.dependencies]
 git2 = { version = "0.20.1", features = ["vendored-libgit2"] }
 itertools = "0.14.0"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

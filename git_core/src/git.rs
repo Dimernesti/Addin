@@ -113,7 +113,7 @@ impl<'a> Repo<'a> {
     }
 
     pub fn add_all(&self) -> Result<git2::Index, git2::Error> {
-        self.add(&["."])
+        self.add(["."])
     }
 
     pub fn commit(&self, message: &str) -> Result<Oid, git2::Error> {
@@ -171,23 +171,37 @@ impl<'a> Repo<'a> {
         Ok(())
     }
 
-    pub fn pull(&self, branch_name: &str) -> Result<(Oid, Oid), git2::Error> {
-        let local_branch = self.repo.find_branch(branch_name, BranchType::Local)?;
+    pub fn pull(&self, branch_name: &str) -> Result<PullResult, git2::Error> {
+        let mut local_branch = self.repo.find_branch(branch_name, BranchType::Local)?;
         let remote_branch = local_branch.upstream()?;
         let old_id = local_branch.get().peel_to_commit()?.id();
+
         let remote_commit = remote_branch.get().peel_to_commit()?;
         let annotated_commit = self.repo.find_annotated_commit(remote_commit.id())?;
         let (analisis, _preference) =
             self.repo.merge_analysis_for_ref(local_branch.get(), &[&annotated_commit])?;
-        if analisis.is_fast_forward() {
-            let mut local_branch = self.repo.find_branch(branch_name, BranchType::Local)?;
-            let _referense = local_branch.get_mut().set_target(remote_commit.id(), "string")?;
+
+        if analisis.is_none() {
+            Ok(PullResult::None)
+        } else if analisis.is_normal() {
+            Ok(PullResult::Normal)
+        } else if analisis.is_up_to_date() {
+            Ok(PullResult::UpToDate)
+        } else if analisis.is_fast_forward() {
+            let referense = local_branch.get_mut().set_target(
+                remote_commit.id(),
+                &format!("fast forward branch '{branch_name}' tip"),
+            )?;
+            let new_id = referense.peel_to_commit()?.id();
+            Ok(PullResult::FastForwarded { old_id, new_id })
+        } else if analisis.is_unborn() {
+            Ok(PullResult::Unborn)
+        } else {
+            unreachable!("Invalid pull analisis value {:b}", analisis.bits())
         }
-        let new_id = local_branch.get().peel_to_commit()?.id();
-        Ok((old_id, new_id))
     }
 
-    pub fn merge(&self, branch_from: &str, branch_to: Option<&str>) -> Result<(), git2::Error> {
+    pub fn merge(&self, _branch_from: &str, _branch_to: Option<&str>) -> Result<(), git2::Error> {
         // self.repo.
         // self.repo.merge(annotated_commits, merge_opts, checkout_opts)
 
@@ -273,4 +287,23 @@ impl TrackedBranch<'_> {
     pub fn upstream_name(&self) -> Option<String> {
         self.upstream.as_ref().map(branch_name)
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PullResult {
+    /// No merge is possible.
+    None,
+    /// A "normal" merge; both HEAD and the given merge input have diverged
+    /// from their common ancestor. The divergent commits must be merged.
+    Normal,
+    /// All given merge inputs are reachable from HEAD, meaning the
+    /// repository is up-to-date and no merge needs to be performed.
+    UpToDate,
+    /// The given merge input is a fast-forward from HEAD and no merge
+    /// needs to be performed. Check out the given merge input.
+    FastForwarded { old_id: Oid, new_id: Oid },
+    /// The HEAD of the current repository is "unborn" and does not point to
+    /// a valid commit. No merge can be performed, but the caller may wish
+    /// to simply set HEAD to the target commit(s).
+    Unborn,
 }

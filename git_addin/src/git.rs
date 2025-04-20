@@ -2,9 +2,8 @@ use git_core::{
     FileStatus,
     INVALID_UTF8,
     StatusSummary,
-    git::{Config, Repo},
+    git::{Config, PullResult, Repo},
 };
-use git2::Oid;
 use itertools::Itertools;
 
 #[derive(Default)]
@@ -49,8 +48,19 @@ impl Git {
     }
 
     pub fn pull(&self, branch_name: &str) -> String {
-        self.pull_(branch_name)
-            .map_or_else(|e| e.to_string(), |(old_id, new_id)| format!("Successfully pulled branch - {branch_name}, old commit - {old_id}, new commit - {new_id}"))
+        self.pull_(branch_name).map_or_else(
+            |e| e.to_string(),
+            |res| match res {
+                PullResult::FastForwarded { old_id, new_id } =>
+                    format!("Successfully pulled branch '{branch_name}', {old_id} -> {new_id}"),
+                PullResult::UpToDate => format!("Branch '{branch_name}' already up to date"),
+                PullResult::None => format!("No branch '{branch_name} merge possible"),
+                PullResult::Normal =>
+                    format!("Local and remote '{branch_name}' diverged. Make a merge"),
+                PullResult::Unborn =>
+                    format!("HEAD of '{branch_name}' doesn't point to a valid commit"),
+            },
+        )
     }
 
     pub fn merge(&self) -> String {
@@ -138,7 +148,7 @@ impl Git {
         self.open_repo()?.push()
     }
 
-    fn pull_(&self, branch_name: &str) -> Result<(Oid, Oid), git2::Error> {
+    fn pull_(&self, branch_name: &str) -> Result<PullResult, git2::Error> {
         self.open_repo()?.pull(branch_name)
     }
 

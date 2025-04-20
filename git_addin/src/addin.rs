@@ -48,8 +48,8 @@ impl GitAddin {
         Ok(())
     }
 
-    fn checkout(&mut self, branch: &mut Variant, ret_value: &mut Variant) -> AddinResult {
-        let result = self.git.checkout(&branch.get_string()?);
+    fn checkout(&mut self, branch_name: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        let result = self.git.checkout(&branch_name.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
@@ -116,7 +116,6 @@ impl GitAddin {
         self.git.config.path = catalog.get_string()?.into();
         Ok(())
     }
-
 }
 
 impl SimpleAddin for GitAddin {
