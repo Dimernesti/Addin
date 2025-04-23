@@ -1,5 +1,6 @@
 use addin1c::{AddinResult, MethodInfo, Methods, PropInfo, SimpleAddin, Variant, name};
 use git_core::AuthType;
+use log::debug;
 
 use crate::git::Git;
 
@@ -9,64 +10,75 @@ pub struct GitAddin {
 
 impl GitAddin {
     pub fn new() -> Self {
+        debug!("GitAdding::new()");
         Self { git: Git::default() }
     }
 
     fn clone_repo(&mut self, url: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        debug!("clone_repo()");
         let message = self.git.clone_repo(&url.get_string()?);
         ret_value.set_str1c(message)?;
         Ok(())
     }
 
     fn get_branches(&mut self, ret_value: &mut Variant) -> AddinResult {
+        debug!("get_branches()");
         let branches = self.git.branches();
         ret_value.set_str1c(branches)?;
         Ok(())
     }
 
     fn get_current_branch(&mut self, ret_value: &mut Variant) -> AddinResult {
+        debug!("get_current_branch()");
         let result = self.git.current_branch();
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn status(&mut self, ret_value: &mut Variant) -> AddinResult {
+        debug!("status()");
         let status = self.git.status();
         ret_value.set_str1c(status)?;
         Ok(())
     }
 
     fn add_all(&mut self, ret_value: &mut Variant) -> AddinResult {
+        debug!("add_all()");
         let message = self.git.add_all();
         ret_value.set_str1c(message)?;
         Ok(())
     }
 
     fn commit(&mut self, message: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        debug!("commit()");
         let result = self.git.commit(&message.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn checkout(&mut self, branch_name: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        debug!("checkout()");
         let result = self.git.checkout(&branch_name.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn push(&mut self, ret_value: &mut Variant) -> AddinResult {
+        debug!("push()");
         let result = self.git.push();
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn pull(&mut self, branch_name: &mut Variant, ret_value: &mut Variant) -> AddinResult {
+        debug!("pull()");
         let result = self.git.pull(&branch_name.get_string()?);
         ret_value.set_str1c(result)?;
         Ok(())
     }
 
     fn merge(&mut self, ret_value: &mut Variant) -> AddinResult {
+        debug!("merge()");
         let result = self.git.merge();
         ret_value.set_str1c(result)?;
         Ok(())

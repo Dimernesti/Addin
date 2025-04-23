@@ -8,6 +8,8 @@ addin1c = "0.5.0"
 git_core = { path = "../git_core" }
 git2 = { workspace = true }
 itertools = { workspace = true }
+log = "0.4.27"
+simple-logging = "2.0.2"
 
 [lib]
 crate-type = ["cdylib"]
