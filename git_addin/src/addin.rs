@@ -205,3 +205,9 @@ impl SimpleAddin for GitAddin {
         ]
     }
 }
+
+impl Drop for GitAddin {
+    fn drop(&mut self) {
+        log::info!("GitAddin::drop()");
+    }
+}

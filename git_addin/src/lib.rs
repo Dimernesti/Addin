@@ -18,7 +18,7 @@ use std::{
 
 use addin::GitAddin;
 use addin1c::{AttachType, create_component, destroy_component, name};
-use log::{debug, info, LevelFilter};
+use log::{LevelFilter, debug, error, info};
 
 pub static PLATFORM_CAPABILITIES: AtomicI32 = AtomicI32::new(-1);
 
@@ -34,6 +34,10 @@ pub unsafe extern "C" fn GetClassObject(name: *const u16, component: *mut *mut c
                 "D:\\users\\sdp\\Documents\\log\\git-addin.log",
                 LevelFilter::Debug,
             );
+            std::panic::set_hook(Box::new(|info| {
+                error!("Rust panic: {:?}", info);
+            }));
+
             info!("creating addin");
             let addin = GitAddin::new();
             unsafe { create_component(component, addin) }
