@@ -10,7 +10,6 @@
 
 mod addin;
 mod git;
-mod shutdown;
 
 use std::{
     ffi::{c_int, c_long, c_void},
@@ -39,7 +38,6 @@ pub unsafe extern "C" fn GetClassObject(name: *const u16, component: *mut *mut c
                 error!("panic: {info:?}");
             }));
             info!("creating addin");
-            info!("shutdown guard: {:?}", shutdown::SHUTDOWN);
             let addin = GitAddin::new();
             unsafe { create_component(component, addin) }
         },
